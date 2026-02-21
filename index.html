@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+    <title>Local Ollama Chat</title>
+
+    <script>
+      document.documentElement.setAttribute(
+        "data-theme",
+        localStorage.getItem("ollama-ui-theme") || "dark",
+      );
+    </script>
+
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="vendors/github-dark.min.css" />
+  </head>
+
+  <body>
+    <div class="chat">
+      <header>
+        <div class="left">
+          <span class="connection-dot" id="connectionDot" title="Connection status"></span>
+          <span>Ollama Chat</span>
+          <span class="badge" id="headerModel" style="display: none"></span>
+          <span class="badge" id="headerCtx" style="display: none"></span>
+          <span class="ctx-usage" id="ctxUsageWrap" style="display: none">
+            <span class="ctx-usage-text" id="ctxUsage"></span>
+            <span class="ctx-usage-track"><span class="ctx-usage-bar" id="ctxBar"></span></span>
+          </span>
+        </div>
+        <div class="right">
+          <button id="themeToggleBtn" onclick="App.toggleTheme()">Light</button>
+          <button onclick="App.exportChat()">Export</button>
+          <button onclick="App.toggleConfig()">Config</button>
+          <button onclick="App.clearChat()">Clear</button>
+        </div>
+      </header>
+
+      <div class="config-panel" id="configPanel">
+        <div>
+          <label>Ollama Base URL</label>
+          <input id="configBaseUrl" placeholder="http://localhost:11434" />
+        </div>
+
+        <div class="config-row">
+          <div>
+            <label>Model</label>
+            <select id="configModelSelect"></select>
+          </div>
+          <div style="flex: 0">
+            <button onclick="App.loadModels()" style="white-space: nowrap">
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label>System Prompt</label>
+          <textarea
+            id="configSystemPrompt"
+            rows="3"
+            placeholder="Optional: set a system prompt..."
+          ></textarea>
+        </div>
+
+        <div class="slider-group">
+          <div>
+            <div class="slider-label">
+              <label>Temperature</label>
+              <span id="tempValue">0.7</span>
+            </div>
+            <input
+              type="range"
+              id="configTemperature"
+              min="0"
+              max="2"
+              step="0.1"
+              value="0.7"
+            />
+          </div>
+          <div>
+            <div class="slider-label">
+              <label>Top P</label>
+              <span id="topPValue">0.9</span>
+            </div>
+            <input
+              type="range"
+              id="configTopP"
+              min="0"
+              max="1"
+              step="0.05"
+              value="0.9"
+            />
+          </div>
+        </div>
+
+        <div>
+          <div class="slider-label">
+            <label>Context Size (num_ctx)</label>
+            <span id="numCtxValue">8192</span>
+          </div>
+          <input
+            type="range"
+            id="configNumCtx"
+            min="2048"
+            max="131072"
+            step="1024"
+            value="8192"
+          />
+        </div>
+
+        <div>
+          <label>Storage Key</label>
+          <input id="configStorageKey" placeholder="ollama-chat-history" />
+        </div>
+
+        <button onclick="App.saveConfig()">Save Config</button>
+      </div>
+
+      <div class="messages" id="messages"></div>
+      <button class="scroll-bottom-btn" id="scrollBottomBtn">Bottom</button>
+      <div class="typing" id="typing"></div>
+
+      <div id="imagePreview" class="image-preview"></div>
+
+      <div class="input-area">
+        <button class="attach-btn" id="attachBtn" title="Attach image">Attach</button>
+        <textarea
+          id="input"
+          rows="1"
+          placeholder="Type a message... (Enter to send, Shift+Enter for newline)"
+        ></textarea>
+        <button class="send-btn" id="sendBtn">Send</button>
+      </div>
+    </div>
+
+    <script src="vendors/highlight.min.js"></script>
+    <script src="vendors/marked.min.js"></script>
+    <script src="vendors/marked-highlight.umd.js"></script>
+
+    <script src="js/state.js"></script>
+    <script src="js/markdown.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/messages.js"></script>
+    <script src="js/chat.js"></script>
+    <script src="js/actions.js"></script>
+    <script src="js/input.js"></script>
+  </body>
+</html>

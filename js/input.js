@@ -1,0 +1,73 @@
+/* input.js — Textarea handling, keyboard shortcuts, init */
+
+App.el.inputEl.addEventListener("input", function () {
+  App.el.inputEl.style.height = "auto";
+  App.el.inputEl.style.height =
+    Math.min(App.el.inputEl.scrollHeight, 150) + "px";
+});
+
+App.el.inputEl.addEventListener("keydown", function (e) {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    handleSend();
+  }
+});
+
+App.el.sendBtn.addEventListener("click", function () {
+  if (App.isGenerating) {
+    App.stopGeneration();
+  } else {
+    handleSend();
+  }
+});
+
+function handleSend() {
+  var value = App.el.inputEl.value.trim();
+  if (!value && !App.pendingImages.length) return;
+  if (App.isGenerating) return;
+
+  var content = value || "(image)";
+  var images = App.pendingImages.length ? App.pendingImages.slice() : null;
+
+  App.el.inputEl.value = "";
+  App.el.inputEl.style.height = "auto";
+  App.clearPendingImages();
+
+  App.sendMessage(content, { images: images });
+}
+
+/* -------- Keyboard shortcuts -------- */
+
+document.addEventListener("keydown", function (e) {
+  /* Escape: stop generation or clear input */
+  if (e.key === "Escape") {
+    if (App.isGenerating) {
+      App.stopGeneration();
+    } else if (document.activeElement === App.el.inputEl) {
+      App.el.inputEl.value = "";
+      App.el.inputEl.style.height = "auto";
+    }
+  }
+
+  /* / to focus input (when not typing somewhere) */
+  if (
+    e.key === "/" &&
+    document.activeElement !== App.el.inputEl &&
+    !document.activeElement.closest(".config-panel") &&
+    document.activeElement.tagName !== "TEXTAREA" &&
+    document.activeElement.tagName !== "INPUT"
+  ) {
+    e.preventDefault();
+    App.el.inputEl.focus();
+  }
+});
+
+/* -------- Init -------- */
+
+(function init() {
+  App.populateConfigUI();
+  App.loadHistory();
+  App.renderHistory();
+  App.loadModels();
+  App.checkConnection();
+})();

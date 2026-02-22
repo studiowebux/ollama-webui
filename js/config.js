@@ -136,6 +136,11 @@ App.fetchModelInfo = async function (modelName) {
           App.el.headerCtx.textContent = ctx + " ctx";
         }
         App.el.headerCtx.style.display = "";
+
+        /* Auto-update num_ctx slider to match model's native context */
+        App.config.numCtx = ctx;
+        document.getElementById("configNumCtx").value = ctx;
+        document.getElementById("numCtxValue").textContent = ctx;
         return;
       }
     }
@@ -143,6 +148,37 @@ App.fetchModelInfo = async function (modelName) {
   } catch (e) {
     App.el.headerCtx.style.display = "none";
   }
+};
+
+/* Unload model from VRAM */
+
+App.unloadModel = async function () {
+  var model = App.config.model || document.getElementById("configModelSelect").value;
+  if (!model) {
+    App.el.typingEl.textContent = "No model selected.";
+    setTimeout(function () { App.el.typingEl.textContent = ""; }, 2000);
+    return;
+  }
+
+  App.el.typingEl.textContent = "Unloading " + model + "...";
+
+  try {
+    var res = await fetch(App.apiUrl("/api/generate"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: model, keep_alive: 0 }),
+    });
+
+    if (res.ok) {
+      App.el.typingEl.textContent = model + " unloaded from VRAM.";
+    } else {
+      App.el.typingEl.textContent = "Failed to unload: HTTP " + res.status;
+    }
+  } catch (e) {
+    App.el.typingEl.textContent = "Failed to unload: " + e.message;
+  }
+
+  setTimeout(function () { App.el.typingEl.textContent = ""; }, 3000);
 };
 
 App.updateHeaderModel = function () {

@@ -183,6 +183,192 @@ App.el.inputEl.addEventListener("paste", async function (e) {
   }
 });
 
+/* -------- Branching -------- */
+
+App.branches = null;
+
+App.branchFrom = function (N) {
+  /* First branch: save current history as fork 0 (original path) */
+  if (!App.branches) {
+    App.branches = {
+      current: 0,
+      forks: [{ label: "Main", history: App.chatHistory.slice() }],
+    };
+  } else {
+    /* Save current state back into active fork */
+    App.branches.forks[App.branches.current].history = App.chatHistory.slice();
+  }
+
+  /* New fork = history up to and including the branched assistant message */
+  var newHistory = App.chatHistory.slice(0, N + 1);
+  var label = "Branch " + App.branches.forks.length;
+  App.branches.forks.push({ label: label, history: newHistory });
+  App.branches.current = App.branches.forks.length - 1;
+
+  App.chatHistory = newHistory.slice();
+  App.saveHistory();
+  App.renderHistory();
+  App.renderBranchNav();
+};
+
+App.navigateBranch = function (delta) {
+  if (!App.branches) return;
+
+  /* Persist current fork state */
+  App.branches.forks[App.branches.current].history = App.chatHistory.slice();
+
+  var next = App.branches.current + delta;
+  if (next < 0 || next >= App.branches.forks.length) return;
+
+  App.branches.current = next;
+  App.chatHistory = App.branches.forks[next].history.slice();
+  App.saveHistory();
+  App.renderHistory();
+  App.renderBranchNav();
+};
+
+/* -------- Chatterbox TTS -------- */
+
+App.speak = async function (text) {
+  if (!App.config.chatterboxUrl) {
+    App.el.typingEl.textContent = "Chatterbox URL not configured.";
+    setTimeout(function () { App.el.typingEl.textContent = ""; }, 2000);
+    return;
+  }
+
+  if (App.config.chatterboxAutoUnload) {
+    await App.unloadModel();
+  }
+
+  App.el.typingEl.textContent = "Synthesizing speech...";
+
+  try {
+    /* Empty URL = same-origin via Caddy /tts proxy */
+    var base = (App.config.chatterboxUrl || "").replace(/\/$/, "") || "/tts";
+    var res = await fetch(base + "/synthesize", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text: text,
+        voice: App.config.chatterboxVoice || "",
+        exageration: 0.5,
+        cfg_weight: 0.5,
+        split: App.config.chatterboxSplit || false,
+        split_chars: App.config.chatterboxSplitChars || 400,
+      }),
+    });
+
+    if (!res.ok) throw new Error("HTTP " + res.status);
+
+    var blob = await res.blob();
+    var audioUrl = URL.createObjectURL(blob);
+    var audio = new Audio(audioUrl);
+    App.el.typingEl.textContent = "Playing...";
+    audio.play();
+    audio.onended = function () {
+      URL.revokeObjectURL(audioUrl);
+      App.el.typingEl.textContent = "";
+    };
+  } catch (e) {
+    App.el.typingEl.textContent = "TTS error: " + e.message;
+    setTimeout(function () { App.el.typingEl.textContent = ""; }, 3000);
+  }
+};
+
+/* -------- Prompt library -------- */
+
+App.prompts = JSON.parse(localStorage.getItem("ollama-prompts")) || [];
+
+App.savePrompts = function () {
+  localStorage.setItem("ollama-prompts", JSON.stringify(App.prompts));
+};
+
+App.togglePromptPanel = function () {
+  var panel = document.getElementById("promptPanel");
+  var isOpen = panel.style.display === "flex";
+  panel.style.display = isOpen ? "none" : "flex";
+  if (!isOpen) App.renderPromptList();
+};
+
+App.renderPromptList = function () {
+  var list = document.getElementById("promptList");
+  list.innerHTML = "";
+  if (!App.prompts.length) {
+    list.innerHTML = '<span style="color:var(--muted);font-size:12px">No prompts saved yet.</span>';
+    return;
+  }
+  App.prompts.forEach(function (p, i) {
+    var item = document.createElement("div");
+    item.className = "prompt-item";
+
+    var title = document.createElement("span");
+    title.className = "prompt-title";
+    title.textContent = p.title;
+
+    var useBtn = document.createElement("button");
+    useBtn.textContent = "Use";
+    useBtn.addEventListener("click", function () {
+      document.getElementById("configSystemPrompt").value = p.content;
+      App.togglePromptPanel();
+      if (App.el.configPanel.style.display !== "flex") App.toggleConfig();
+    });
+
+    var delBtn = document.createElement("button");
+    delBtn.textContent = "Delete";
+    delBtn.addEventListener("click", function () {
+      App.prompts.splice(i, 1);
+      App.savePrompts();
+      App.renderPromptList();
+    });
+
+    item.appendChild(title);
+    item.appendChild(useBtn);
+    item.appendChild(delBtn);
+    list.appendChild(item);
+  });
+};
+
+App.addPrompt = function () {
+  var title = document.getElementById("newPromptTitle").value.trim();
+  var content = document.getElementById("newPromptContent").value.trim();
+  if (!title || !content) return;
+  App.prompts.push({ title: title, content: content });
+  App.savePrompts();
+  document.getElementById("newPromptTitle").value = "";
+  document.getElementById("newPromptContent").value = "";
+  App.renderPromptList();
+};
+
+App.exportPrompts = function () {
+  var blob = new Blob([JSON.stringify(App.prompts, null, 2)], { type: "application/json" });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url;
+  a.download = "ollama-prompts.json";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
+App.importPrompts = function (input) {
+  var file = input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function (e) {
+    try {
+      var data = JSON.parse(e.target.result);
+      if (Array.isArray(data)) {
+        App.prompts = App.prompts.concat(data);
+        App.savePrompts();
+        App.renderPromptList();
+      }
+    } catch (err) { /* ignore */ }
+  };
+  reader.readAsText(file);
+  input.value = "";
+};
+
 /* -------- Attach button handler -------- */
 
 document.getElementById("attachBtn").addEventListener("click", function () {

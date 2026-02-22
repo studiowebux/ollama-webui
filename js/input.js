@@ -4,6 +4,8 @@ App.el.inputEl.addEventListener("input", function () {
   App.el.inputEl.style.height = "auto";
   App.el.inputEl.style.height =
     Math.min(App.el.inputEl.scrollHeight, 150) + "px";
+  var len = App.el.inputEl.value.length;
+  document.getElementById("charCount").textContent = len > 0 ? len : "";
 });
 
 App.el.inputEl.addEventListener("keydown", function (e) {

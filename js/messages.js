@@ -9,16 +9,36 @@ App.appendMessageEl = function (role, content, animate, index, images, searchRes
     App.addCopyButtons(div);
     App.wrapTables(div);
 
-    /* Action bar with Regenerate */
+    /* Action bar */
     var actions = document.createElement("div");
     actions.className = "message-actions";
+
     var regenBtn = document.createElement("button");
     regenBtn.className = "msg-action-btn";
     regenBtn.textContent = "Regenerate";
-    regenBtn.addEventListener("click", function () {
-      App.regenerate();
-    });
+    regenBtn.addEventListener("click", function () { App.regenerate(); });
     actions.appendChild(regenBtn);
+
+    if (index !== undefined) {
+      var branchBtn = document.createElement("button");
+      branchBtn.className = "msg-action-btn";
+      branchBtn.textContent = "Branch";
+      (function (idx) {
+        branchBtn.addEventListener("click", function () { App.branchFrom(idx); });
+      })(index);
+      actions.appendChild(branchBtn);
+
+      if (App.config.chatterboxUrl) {
+        var speakBtn = document.createElement("button");
+        speakBtn.className = "msg-action-btn";
+        speakBtn.textContent = "Speak";
+        (function (text) {
+          speakBtn.addEventListener("click", function () { App.speak(text); });
+        })(content);
+        actions.appendChild(speakBtn);
+      }
+    }
+
     div.appendChild(actions);
   } else {
     /* User message */
@@ -105,6 +125,8 @@ App.clearChat = function () {
 
 /* -------- Scroll helpers -------- */
 
+App.userScrolledUp = false;
+
 App.isNearBottom = function () {
   var threshold = 80;
   return (
@@ -116,19 +138,50 @@ App.isNearBottom = function () {
 };
 
 App.scrollToBottom = function (force) {
-  if (force || App.isNearBottom()) {
+  if (force) {
+    App.userScrolledUp = false;
+    App.el.messagesEl.scrollTop = App.el.messagesEl.scrollHeight;
+    return;
+  }
+  if (!App.userScrolledUp) {
     App.el.messagesEl.scrollTop = App.el.messagesEl.scrollHeight;
   }
 };
 
 App.el.messagesEl.addEventListener("scroll", function () {
-  App.el.scrollBottomBtn.style.display = App.isNearBottom() ? "none" : "block";
+  var nearBottom = App.isNearBottom();
+  App.el.scrollBottomBtn.style.display = nearBottom ? "none" : "block";
+  /* Track when user manually scrolls up during generation */
+  if (!nearBottom && App.isGenerating) {
+    App.userScrolledUp = true;
+  }
+  if (nearBottom) {
+    App.userScrolledUp = false;
+  }
 });
 
 App.el.scrollBottomBtn.addEventListener("click", function () {
-  App.el.messagesEl.scrollTop = App.el.messagesEl.scrollHeight;
+  App.userScrolledUp = false;
+  App.el.messagesEl.scroll({ top: App.el.messagesEl.scrollHeight, behavior: "smooth" });
   App.el.scrollBottomBtn.style.display = "none";
 });
+
+/* -------- Branch navigation -------- */
+
+App.renderBranchNav = function () {
+  var nav = document.getElementById("branchNav");
+  if (!App.branches || App.branches.forks.length <= 1) {
+    nav.style.display = "none";
+    return;
+  }
+  var curr = App.branches.current;
+  var total = App.branches.forks.length;
+  nav.style.display = "flex";
+  document.getElementById("branchLabel").textContent =
+    App.branches.forks[curr].label + " (" + (curr + 1) + "/" + total + ")";
+  document.getElementById("branchPrev").disabled = curr === 0;
+  document.getElementById("branchNext").disabled = curr === total - 1;
+};
 
 /* -------- Context usage -------- */
 

@@ -32,6 +32,7 @@
         <div class="right">
           <button id="themeToggleBtn" onclick="App.toggleTheme()">Light</button>
           <button onclick="App.exportChat()">Export</button>
+          <button onclick="App.togglePromptPanel()">Prompts</button>
           <button onclick="App.toggleConfig()">Config</button>
           <button onclick="App.clearChat()">Clear</button>
         </div>
@@ -119,11 +120,57 @@
         </div>
 
         <div>
+          <label>Chatterbox TTS URL</label>
+          <input id="configChatterboxUrl" placeholder="http://localhost:8001 (empty = same origin via /tts)" />
+        </div>
+
+        <div class="config-row">
+          <div>
+            <label>TTS Voice</label>
+            <select id="configChatterboxVoice"><option value="">-- select voice --</option></select>
+          </div>
+          <div style="flex: 0; align-self: flex-end; display:flex; flex-direction:column; gap:4px">
+            <label style="white-space: nowrap; font-size:12px; color:var(--muted)">
+              <input type="checkbox" id="configChatterboxAutoUnload" style="width:auto;margin-right:4px" />
+              Auto-unload Ollama
+            </label>
+            <label style="white-space: nowrap; font-size:12px; color:var(--muted)">
+              <input type="checkbox" id="configChatterboxSplit" style="width:auto;margin-right:4px" />
+              Split text &nbsp;<input type="number" id="configChatterboxSplitChars" min="100" max="2000" step="50" value="400" style="width:54px;display:inline;padding:2px 4px;font-size:12px" /> chars
+            </label>
+          </div>
+        </div>
+
+        <div>
           <label>Storage Key</label>
           <input id="configStorageKey" placeholder="ollama-chat-history" />
         </div>
 
         <button onclick="App.saveConfig()">Save Config</button>
+      </div>
+
+      <!-- Prompt library panel -->
+      <div class="prompt-panel" id="promptPanel" style="display:none">
+        <div class="prompt-list" id="promptList"></div>
+        <div class="prompt-add">
+          <input id="newPromptTitle" placeholder="Title" />
+          <textarea id="newPromptContent" rows="2" placeholder="Prompt content..."></textarea>
+          <div style="display:flex;gap:6px">
+            <button onclick="App.addPrompt()">Add</button>
+            <button onclick="App.exportPrompts()">Export JSON</button>
+            <label style="cursor:pointer;border:1px solid var(--border);padding:4px 8px;font-size:12px;color:var(--muted)">
+              Import
+              <input type="file" accept=".json" style="display:none" onchange="App.importPrompts(this)" />
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Branch navigation -->
+      <div class="branch-nav" id="branchNav" style="display:none">
+        <button id="branchPrev" onclick="App.navigateBranch(-1)">&lt;</button>
+        <span id="branchLabel"></span>
+        <button id="branchNext" onclick="App.navigateBranch(1)">&gt;</button>
       </div>
 
       <div class="messages" id="messages"></div>
@@ -132,7 +179,7 @@
 
       <div id="imagePreview" class="image-preview"></div>
 
-      <div class="input-area">
+      <div class="input-area" style="position:relative">
         <button class="search-toggle-btn" id="searchToggleBtn" onclick="App.toggleSearch()" title="Toggle web search">Search</button>
         <button class="attach-btn" id="attachBtn" title="Attach image">Attach</button>
         <textarea
@@ -140,6 +187,7 @@
           rows="1"
           placeholder="Type a message... (Enter to send, Shift+Enter for newline)"
         ></textarea>
+        <span id="charCount" class="char-count"></span>
         <button class="send-btn" id="sendBtn">Send</button>
       </div>
     </div>

@@ -36,6 +36,8 @@ App.sendMessage = async function (content, opts) {
     return;
   }
 
+  App.userScrolledUp = false;
+
   if (!skipUserPush) {
     var userMsg = { role: "user", content: content };
     if (images && images.length) userMsg.images = images;
@@ -161,27 +163,47 @@ App.sendMessage = async function (content, opts) {
       assistantDiv.appendChild(statsDiv);
     }
 
-    /* Action bar (regenerate) */
+    /* Action bar */
     var actions = document.createElement("div");
     actions.className = "message-actions";
+
     var regenBtn = document.createElement("button");
     regenBtn.className = "msg-action-btn";
     regenBtn.textContent = "Regenerate";
-    regenBtn.addEventListener("click", function () {
-      App.regenerate();
-    });
+    regenBtn.addEventListener("click", function () { App.regenerate(); });
     actions.appendChild(regenBtn);
+
+    if (fullText.trim()) {
+      App.chatHistory.push({ role: "assistant", content: fullText.trim() });
+      App.saveHistory();
+    }
+
+    /* Branch button — index is now valid after push */
+    var assistantIdx = App.chatHistory.length - 1;
+    var branchBtn = document.createElement("button");
+    branchBtn.className = "msg-action-btn";
+    branchBtn.textContent = "Branch";
+    (function (idx) {
+      branchBtn.addEventListener("click", function () { App.branchFrom(idx); });
+    })(assistantIdx);
+    actions.appendChild(branchBtn);
+
+    if (App.config.chatterboxUrl) {
+      var speakBtn = document.createElement("button");
+      speakBtn.className = "msg-action-btn";
+      speakBtn.textContent = "Speak";
+      (function (text) {
+        speakBtn.addEventListener("click", function () { App.speak(text); });
+      })(fullText.trim());
+      actions.appendChild(speakBtn);
+    }
+
     assistantDiv.appendChild(actions);
 
     /* Update header context usage */
     if (promptEvalCount > 0) {
       var ctxTotal = promptEvalCount + evalCount;
       App.updateCtxUsage(ctxTotal, App.config.numCtx);
-    }
-
-    if (fullText.trim()) {
-      App.chatHistory.push({ role: "assistant", content: fullText.trim() });
-      App.saveHistory();
     }
   } catch (err) {
     if (err.name === "AbortError") {
@@ -204,7 +226,7 @@ App.sendMessage = async function (content, opts) {
   App.abortController = null;
   App.setGenerating(false);
   App.el.typingEl.textContent = "";
-  App.scrollToBottom(true);
+  App.scrollToBottom();
 };
 
 App.stopGeneration = function () {

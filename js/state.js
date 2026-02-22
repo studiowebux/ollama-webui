@@ -9,6 +9,11 @@ var DEFAULT_CONFIG = {
   topP: 0.9,
   numCtx: 8192,
   searchUrl: "",
+  chatterboxUrl: "",
+  chatterboxVoice: "",
+  chatterboxAutoUnload: false,
+  chatterboxSplit: false,
+  chatterboxSplitChars: 400,
 };
 
 window.App = {

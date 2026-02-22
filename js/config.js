@@ -17,6 +17,11 @@ App.populateConfigUI = function () {
   document.getElementById("configNumCtx").value = App.config.numCtx;
   document.getElementById("numCtxValue").textContent = App.config.numCtx;
   document.getElementById("configSearchUrl").value = App.config.searchUrl || "";
+  document.getElementById("configChatterboxUrl").value = App.config.chatterboxUrl || "";
+  document.getElementById("configChatterboxAutoUnload").checked = App.config.chatterboxAutoUnload || false;
+  document.getElementById("configChatterboxSplit").checked = App.config.chatterboxSplit || false;
+  document.getElementById("configChatterboxSplitChars").value = App.config.chatterboxSplitChars || 400;
+  if (App.config.chatterboxUrl) App.loadChatterboxVoices();
 };
 
 App.saveConfig = function () {
@@ -37,6 +42,11 @@ App.saveConfig = function () {
   App.config.searchUrl = document
     .getElementById("configSearchUrl")
     .value.trim();
+  App.config.chatterboxUrl = document.getElementById("configChatterboxUrl").value.trim();
+  App.config.chatterboxVoice = document.getElementById("configChatterboxVoice").value;
+  App.config.chatterboxAutoUnload = document.getElementById("configChatterboxAutoUnload").checked;
+  App.config.chatterboxSplit = document.getElementById("configChatterboxSplit").checked;
+  App.config.chatterboxSplitChars = parseInt(document.getElementById("configChatterboxSplitChars").value, 10) || 400;
 
   localStorage.setItem("ollama-ui-config", JSON.stringify(App.config));
   App.loadHistory();
@@ -149,6 +159,33 @@ App.fetchModelInfo = async function (modelName) {
     App.el.headerCtx.style.display = "none";
   }
 };
+
+/* Chatterbox voice loader */
+
+App.loadChatterboxVoices = async function () {
+  var select = document.getElementById("configChatterboxVoice");
+  var url = (document.getElementById("configChatterboxUrl").value.trim() || App.config.chatterboxUrl || "").replace(/\/$/, "") || "/tts";
+  if (!url) return;
+  try {
+    var res = await fetch(url.replace(/\/$/, "") + "/voices");
+    var data = await res.json();
+    select.innerHTML = "";
+    (data.voices || []).forEach(function (v) {
+      var opt = document.createElement("option");
+      opt.value = v;
+      opt.textContent = v;
+      select.appendChild(opt);
+    });
+    if (App.config.chatterboxVoice) select.value = App.config.chatterboxVoice;
+  } catch (e) {
+    select.innerHTML = '<option value="">No voices found</option>';
+  }
+};
+
+document.getElementById("configChatterboxUrl").addEventListener(
+  "input",
+  App.debounce(function () { App.loadChatterboxVoices(); }, 800),
+);
 
 /* Unload model from VRAM */
 

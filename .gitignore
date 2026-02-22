@@ -1,3 +1,7 @@
 .DS_Store
 .claude
 certs/*.pem
+chatterbox/references/*.wav
+chatterbox/output/
+chatterbox/.venv/
+chatterbox/uv.lock

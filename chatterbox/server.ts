@@ -181,7 +181,7 @@ async function handler(req: Request): Promise<Response> {
     );
   }
 
-  if (req.method === "GET" && url.pathname === "/") {
+  if (req.method === "GET" && (url.pathname === "/" || url.pathname === "")) {
     const availableVoices = await getAvailableVoices();
     const html = `<!DOCTYPE html>
 <html>
@@ -215,16 +215,16 @@ async function handler(req: Request): Promise<Response> {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Exaggeration</label>
-            <input type="number" id="exageration" step="0.1" min="0" max="10" value="0.5"
+            <input type="number" id="exageration" step="any" min="0" max="2" value="0.5"
               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <p class="text-xs text-gray-500 mt-1">Default: 0.5</p>
+            <p class="text-xs text-gray-500 mt-1">0 – 2, default 0.5</p>
           </div>
 
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">CFG Weight</label>
-            <input type="number" id="cfg_weight" step="0.1" min="0" max="10" value="0.5"
+            <input type="number" id="cfg_weight" step="any" min="0" max="1" value="0.5"
               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <p class="text-xs text-gray-500 mt-1">Default: 0.5</p>
+            <p class="text-xs text-gray-500 mt-1">0 – 1, default 0.5</p>
           </div>
         </div>
 
@@ -270,7 +270,7 @@ async function handler(req: Request): Promise<Response> {
       '</div>';
 
     try {
-      const response = await fetch('/synthesize', {
+      const response = await fetch('/tts/synthesize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, voice, exageration, cfg_weight, split, split_chars })

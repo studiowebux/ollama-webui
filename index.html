@@ -129,6 +129,9 @@
             <label>TTS Voice</label>
             <select id="configChatterboxVoice"><option value="">-- select voice --</option></select>
           </div>
+          <div style="flex: 0; align-self: flex-start; padding-top: 18px">
+            <button onclick="App.loadChatterboxVoices()" style="white-space:nowrap">Refresh</button>
+          </div>
           <div style="flex: 0; align-self: flex-end; display:flex; flex-direction:column; gap:4px">
             <label style="white-space: nowrap; font-size:12px; color:var(--muted)">
               <input type="checkbox" id="configChatterboxAutoUnload" style="width:auto;margin-right:4px" />

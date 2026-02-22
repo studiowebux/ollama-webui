@@ -14,6 +14,8 @@ var DEFAULT_CONFIG = {
   chatterboxAutoUnload: false,
   chatterboxSplit: false,
   chatterboxSplitChars: 400,
+  chatterboxExageration: 0.5,
+  chatterboxCfgWeight: 0.5,
 };
 
 window.App = {

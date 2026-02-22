@@ -227,52 +227,214 @@ App.navigateBranch = function (delta) {
   App.renderBranchNav();
 };
 
+/* -------- Chatterbox TTS helpers -------- */
+
+function ttsShowError(msg) {
+  App.el.typingEl.innerHTML = "";
+  var errDiv = document.createElement("span");
+  errDiv.style.color = "var(--text)";
+  errDiv.textContent = "TTS error: " + msg;
+  var dismissBtn = document.createElement("button");
+  dismissBtn.className = "tts-btn";
+  dismissBtn.textContent = "✕";
+  dismissBtn.style.marginLeft = "8px";
+  dismissBtn.addEventListener("click", function () { App.el.typingEl.innerHTML = ""; });
+  App.el.typingEl.appendChild(errDiv);
+  App.el.typingEl.appendChild(dismissBtn);
+}
+
+function ttsShowPlayer(blob, voice) {
+  var audioUrl = URL.createObjectURL(blob);
+  var filename = (voice || "voice") + "_" + Date.now() + ".wav";
+
+  App.el.typingEl.innerHTML = "";
+  var player = document.createElement("div");
+  player.className = "tts-player";
+
+  var audio = document.createElement("audio");
+  audio.src = audioUrl;
+
+  var playBtn = document.createElement("button");
+  playBtn.className = "tts-btn";
+  playBtn.textContent = "▶ Play";
+  playBtn.addEventListener("click", function () {
+    if (audio.paused) {
+      audio.play();
+      playBtn.textContent = "⏸ Pause";
+    } else {
+      audio.pause();
+      playBtn.textContent = "▶ Play";
+    }
+  });
+  audio.onended = function () {
+    playBtn.textContent = "▶ Play";
+    URL.revokeObjectURL(audioUrl);
+  };
+
+  var dlBtn = document.createElement("a");
+  dlBtn.className = "tts-btn";
+  dlBtn.href = audioUrl;
+  dlBtn.download = filename;
+  dlBtn.textContent = "↓ " + filename;
+
+  var closeBtn = document.createElement("button");
+  closeBtn.className = "tts-btn";
+  closeBtn.textContent = "✕";
+  closeBtn.addEventListener("click", function () {
+    audio.pause();
+    URL.revokeObjectURL(audioUrl);
+    App.el.typingEl.innerHTML = "";
+  });
+
+  player.appendChild(playBtn);
+  player.appendChild(dlBtn);
+  player.appendChild(closeBtn);
+  App.el.typingEl.appendChild(player);
+}
+
+/* Split text at sentence boundaries, respecting maxChars per chunk */
+function ttsSplitText(text, maxChars) {
+  /* Safari-compatible: no lookbehind. Insert marker after sentence endings. */
+  var sentences = text.trim().replace(/([.!?]) +/g, "$1\n").split("\n");
+  var chunks = [];
+  var current = "";
+
+  sentences.forEach(function (s) {
+    s = s.trim();
+    if (!s) return;
+    if (current.length + s.length + 1 <= maxChars) {
+      current = current ? current + " " + s : s;
+    } else {
+      if (current) chunks.push(current);
+      if (s.length > maxChars) {
+        /* Sentence too long — split at word boundaries */
+        var words = s.split(" ");
+        current = "";
+        words.forEach(function (w) {
+          if (current.length + w.length + 1 <= maxChars) {
+            current = current ? current + " " + w : w;
+          } else {
+            if (current) chunks.push(current);
+            current = w;
+          }
+        });
+      } else {
+        current = s;
+      }
+    }
+  });
+  if (current) chunks.push(current);
+  return chunks.filter(function (c) { return c.trim(); });
+}
+
+/* Find the byte offset where the 'data' chunk payload starts in a WAV buffer */
+function wavDataOffset(buf) {
+  var view = new DataView(buf);
+  var pos = 12; /* skip RIFF header (4) + file size (4) + WAVE (4) */
+  while (pos + 8 <= buf.byteLength) {
+    var id = String.fromCharCode(
+      view.getUint8(pos), view.getUint8(pos + 1),
+      view.getUint8(pos + 2), view.getUint8(pos + 3)
+    );
+    var chunkSize = view.getUint32(pos + 4, true);
+    if (id === "data") return { headerEnd: pos + 8, dataSize: chunkSize, dataOffset: pos };
+    pos += 8 + chunkSize;
+  }
+  return null; /* malformed */
+}
+
+/* Concatenate multiple PCM WAV blobs into one */
+async function ttsConcatWav(blobs) {
+  var buffers = await Promise.all(blobs.map(function (b) { return b.arrayBuffer(); }));
+
+  var infos = buffers.map(function (buf) {
+    var d = wavDataOffset(buf);
+    if (!d) throw new Error("Invalid WAV chunk");
+    return d;
+  });
+
+  var totalAudio = infos.reduce(function (n, d) { return n + d.dataSize; }, 0);
+  var headerLen = infos[0].headerEnd; /* header from first file up to data payload */
+  var out = new ArrayBuffer(headerLen + totalAudio);
+  var view = new DataView(out);
+  var bytes = new Uint8Array(out);
+
+  /* Copy full header from first file */
+  bytes.set(new Uint8Array(buffers[0], 0, headerLen), 0);
+  /* Patch RIFF file size and data chunk size */
+  view.setUint32(4, headerLen - 8 + totalAudio, true);
+  view.setUint32(infos[0].dataOffset + 4, totalAudio, true);
+
+  var offset = headerLen;
+  buffers.forEach(function (buf, i) {
+    var d = infos[i];
+    bytes.set(new Uint8Array(buf, d.headerEnd, d.dataSize), offset);
+    offset += d.dataSize;
+  });
+
+  return new Blob([out], { type: "audio/wav" });
+}
+
+async function ttsFetch(base, text) {
+  var res = await fetch(base + "/tts/synthesize", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      text: text,
+      voice: App.config.chatterboxVoice || "",
+      exageration: App.config.chatterboxExageration ?? 0.5,
+      cfg_weight: App.config.chatterboxCfgWeight ?? 0.5,
+    }),
+  });
+  if (!res.ok) {
+    var errBody = await res.text();
+    try { errBody = JSON.parse(errBody).error || errBody; } catch (e) { /* raw */ }
+    throw new Error("HTTP " + res.status + " — " + errBody);
+  }
+  return res.blob();
+}
+
 /* -------- Chatterbox TTS -------- */
 
 App.speak = async function (text) {
-  if (!App.config.chatterboxUrl) {
-    App.el.typingEl.textContent = "Chatterbox URL not configured.";
-    setTimeout(function () { App.el.typingEl.textContent = ""; }, 2000);
-    return;
-  }
-
-  if (App.config.chatterboxAutoUnload) {
-    await App.unloadModel();
-  }
-
   App.el.typingEl.textContent = "Synthesizing speech...";
 
+  if (App.config.chatterboxAutoUnload) {
+    await App.unloadModel(true);
+  }
+
   try {
-    /* chatterboxUrl is the Caddy base (or empty for same-origin).
-       Chatterbox is always proxied under /tts/ by Caddy. */
     var base = (App.config.chatterboxUrl || "").replace(/\/$/, "");
-    var res = await fetch(base + "/tts/synthesize", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        text: text,
-        voice: App.config.chatterboxVoice || "",
-        exageration: 0.5,
-        cfg_weight: 0.5,
-        split: App.config.chatterboxSplit || false,
-        split_chars: App.config.chatterboxSplitChars || 400,
-      }),
-    });
+    var voice = App.config.chatterboxVoice || "voice";
+    var finalBlob;
 
-    if (!res.ok) throw new Error("HTTP " + res.status);
+    if (App.config.chatterboxSplit) {
+      var chunks = ttsSplitText(text, App.config.chatterboxSplitChars || 400);
+      var total = chunks.length;
+      var blobs = [];
 
-    var blob = await res.blob();
-    var audioUrl = URL.createObjectURL(blob);
-    var audio = new Audio(audioUrl);
-    App.el.typingEl.textContent = "Playing...";
-    audio.play();
-    audio.onended = function () {
-      URL.revokeObjectURL(audioUrl);
-      App.el.typingEl.textContent = "";
-    };
+      for (var i = 0; i < total; i++) {
+        App.el.typingEl.textContent = "Synthesizing " + (i + 1) + "/" + total + "...";
+        var blob = await ttsFetch(base, chunks[i]);
+        App.el.typingEl.textContent = "Downloading " + (i + 1) + "/" + total + "...";
+        blobs.push(blob);
+      }
+
+      if (total > 1) {
+        App.el.typingEl.textContent = "Combining " + total + " chunks...";
+        finalBlob = await ttsConcatWav(blobs);
+      } else {
+        finalBlob = blobs[0];
+      }
+    } else {
+      var singleBlob = await ttsFetch(base, text);
+      App.el.typingEl.textContent = "Downloading audio...";
+      finalBlob = singleBlob;
+    }
+
+    ttsShowPlayer(finalBlob, voice);
   } catch (e) {
-    App.el.typingEl.textContent = "TTS error: " + e.message;
-    setTimeout(function () { App.el.typingEl.textContent = ""; }, 3000);
+    ttsShowError(e.message);
   }
 };
 

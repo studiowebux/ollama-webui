@@ -21,10 +21,16 @@ App.populateConfigUI = function () {
   document.getElementById("configChatterboxAutoUnload").checked = App.config.chatterboxAutoUnload || false;
   document.getElementById("configChatterboxSplit").checked = App.config.chatterboxSplit || false;
   document.getElementById("configChatterboxSplitChars").value = App.config.chatterboxSplitChars || 400;
+  document.getElementById("configChatterboxExageration").value = App.config.chatterboxExageration ?? 0.5;
+  document.getElementById("ttsExagerationValue").textContent = App.config.chatterboxExageration ?? 0.5;
+  document.getElementById("configChatterboxCfgWeight").value = App.config.chatterboxCfgWeight ?? 0.5;
+  document.getElementById("ttsCfgWeightValue").textContent = App.config.chatterboxCfgWeight ?? 0.5;
   App.loadChatterboxVoices();
 };
 
 App.saveConfig = function () {
+  var prevStorageKey = App.config.storageKey;
+
   App.config.baseUrl = document.getElementById("configBaseUrl").value.trim();
   App.config.model = document.getElementById("configModelSelect").value;
   App.config.storageKey = document
@@ -47,10 +53,18 @@ App.saveConfig = function () {
   App.config.chatterboxAutoUnload = document.getElementById("configChatterboxAutoUnload").checked;
   App.config.chatterboxSplit = document.getElementById("configChatterboxSplit").checked;
   App.config.chatterboxSplitChars = parseInt(document.getElementById("configChatterboxSplitChars").value, 10) || 400;
+  App.config.chatterboxExageration = parseFloat(document.getElementById("configChatterboxExageration").value);
+  App.config.chatterboxCfgWeight = parseFloat(document.getElementById("configChatterboxCfgWeight").value);
 
   localStorage.setItem("ollama-ui-config", JSON.stringify(App.config));
-  App.loadHistory();
-  App.renderHistory();
+
+  /* Only reload + re-render history if the storage key changed.
+     Re-rendering wipes messagesEl and kills any in-progress stream. */
+  if (App.config.storageKey !== prevStorageKey) {
+    App.loadHistory();
+    App.renderHistory();
+  }
+
   App.toggleConfig();
 };
 
@@ -183,6 +197,14 @@ App.loadChatterboxVoices = async function () {
   }
 };
 
+document.getElementById("configChatterboxExageration").addEventListener("input", function (e) {
+  document.getElementById("ttsExagerationValue").textContent = e.target.value;
+});
+
+document.getElementById("configChatterboxCfgWeight").addEventListener("input", function (e) {
+  document.getElementById("ttsCfgWeightValue").textContent = e.target.value;
+});
+
 document.getElementById("configChatterboxUrl").addEventListener(
   "input",
   App.debounce(function () { App.loadChatterboxVoices(); }, 800),
@@ -190,15 +212,18 @@ document.getElementById("configChatterboxUrl").addEventListener(
 
 /* Unload model from VRAM */
 
-App.unloadModel = async function () {
+/* silent=true: skip status messages (used when caller owns the typing indicator) */
+App.unloadModel = async function (silent) {
   var model = App.config.model || document.getElementById("configModelSelect").value;
   if (!model) {
-    App.el.typingEl.textContent = "No model selected.";
-    setTimeout(function () { App.el.typingEl.textContent = ""; }, 2000);
+    if (!silent) {
+      App.el.typingEl.textContent = "No model selected.";
+      setTimeout(function () { App.el.typingEl.textContent = ""; }, 2000);
+    }
     return;
   }
 
-  App.el.typingEl.textContent = "Unloading " + model + "...";
+  if (!silent) App.el.typingEl.textContent = "Unloading " + model + "...";
 
   try {
     var res = await fetch(App.apiUrl("/api/generate"), {
@@ -207,16 +232,16 @@ App.unloadModel = async function () {
       body: JSON.stringify({ model: model, keep_alive: 0 }),
     });
 
-    if (res.ok) {
-      App.el.typingEl.textContent = model + " unloaded from VRAM.";
-    } else {
-      App.el.typingEl.textContent = "Failed to unload: HTTP " + res.status;
+    if (!silent) {
+      App.el.typingEl.textContent = res.ok
+        ? model + " unloaded from VRAM."
+        : "Failed to unload: HTTP " + res.status;
     }
   } catch (e) {
-    App.el.typingEl.textContent = "Failed to unload: " + e.message;
+    if (!silent) App.el.typingEl.textContent = "Failed to unload: " + e.message;
   }
 
-  setTimeout(function () { App.el.typingEl.textContent = ""; }, 3000);
+  if (!silent) setTimeout(function () { App.el.typingEl.textContent = ""; }, 3000);
 };
 
 App.updateHeaderModel = function () {

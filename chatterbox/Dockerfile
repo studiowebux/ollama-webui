@@ -10,6 +10,10 @@ RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh
 
 WORKDIR /app
 
+# Use python3 directly (deps are pip-installed globally).
+# Override with PYTHON_EXEC="uv run python" for local dev outside Docker.
+ENV PYTHON_EXEC=python3
+
 # ── Python dependencies ──────────────────────────────────────────────────────
 # Step 1: numpy + setuptools first — pkuseg requires numpy at build time
 RUN pip install --no-cache-dir numpy setuptools

@@ -144,6 +144,23 @@
           </div>
         </div>
 
+        <div class="slider-group">
+          <div>
+            <div class="slider-label">
+              <label>TTS Exaggeration</label>
+              <span id="ttsExagerationValue">0.5</span>
+            </div>
+            <input type="range" id="configChatterboxExageration" min="0" max="2" step="0.05" value="0.5" />
+          </div>
+          <div>
+            <div class="slider-label">
+              <label>TTS CFG Weight</label>
+              <span id="ttsCfgWeightValue">0.5</span>
+            </div>
+            <input type="range" id="configChatterboxCfgWeight" min="0" max="1" step="0.05" value="0.5" />
+          </div>
+        </div>
+
         <div>
           <label>Storage Key</label>
           <input id="configStorageKey" placeholder="ollama-chat-history" />

@@ -1,6 +1,6 @@
 # Ollama Chat UI
 
-Minimal black and white chat interface for Ollama with web search support via SearXNG.
+Minimal black and white chat interface for Ollama with web search and text-to-speech support.
 
 ## Features
 
@@ -8,9 +8,12 @@ Minimal black and white chat interface for Ollama with web search support via Se
 - Dark / light theme (persisted in localStorage)
 - Regenerate last response
 - Edit and resend any user message
+- Conversation branching (each regeneration is a branch, navigate with ← →)
 - Export conversation as Markdown
 - Image paste and attach (multimodal models)
 - Web search via SearXNG with source display
+- Prompt library (save and reuse system prompts)
+- Text-to-speech via [Chatterbox](https://github.com/resemble-ai/chatterbox) with voice selection, exaggeration, and CFG weight controls
 - Configurable temperature, top_p, context size, system prompt
 - Responsive design (desktop, tablet, phone)
 
@@ -90,20 +93,58 @@ search:
     - json
 ```
 
+## Text-to-Speech (Chatterbox)
+
+The UI integrates with a local [Chatterbox](https://github.com/resemble-ai/chatterbox) server for voice synthesis.
+
+### Config options
+
+| Setting | Description |
+|---|---|
+| Chatterbox URL | Base URL of the Chatterbox server (empty = same origin) |
+| Voice | WAV reference file name (without extension) from `chatterbox/references/` |
+| Auto-unload model | Unload the LLM from VRAM before synthesizing (frees GPU memory) |
+| Split long text | Split text into chunks and concatenate the resulting WAV files client-side |
+| Max chars per chunk | Character limit per TTS request when splitting is enabled (default 400) |
+| TTS Exaggeration | Chatterbox `exaggeration` parameter (0–2, default 0.5) |
+| TTS CFG Weight | Chatterbox `cfg_weight` parameter (0–1, default 0.5) |
+
+### Running the Chatterbox server
+
+```
+cd chatterbox
+docker compose up -d
+```
+
+The server exposes `/tts/synthesize` and `/tts/voices`. Place `.wav` voice reference files in `chatterbox/references/`.
+
+#### Local dev (outside Docker)
+
+```
+PYTHON_EXEC="uv run python" deno run -A server.ts
+```
+
+`PYTHON_EXEC` defaults to `python3` inside Docker where dependencies are pip-installed globally.
+
 ## File Structure
 
 ```
 index.html            HTML shell
 style.css             All styles (dark/light theme)
 js/
-  state.js            App namespace, config, shared state
+  state.js            App namespace, config defaults, shared state
   markdown.js         Marked/hljs setup, renderMarkdown
-  config.js           Config panel, model loading, connection
+  config.js           Config panel, model loading, unload model
   messages.js         Message rendering, scroll, context usage
   chat.js             Streaming, buildMessages, sendMessage
-  actions.js          Regenerate, edit, export, search, image paste
+  actions.js          Regenerate, edit, export, search, image paste, TTS
   input.js            Input handling, keyboard shortcuts, init
 vendors/              highlight.js, marked.js (vendored)
+chatterbox/
+  server.ts           Deno HTTP server wrapping voice_synthesizer.py
+  voice_synthesizer.py Chatterbox synthesis script
+  Dockerfile          Container image for the TTS server
+  references/         Voice reference WAV files (gitignored)
 searxng/
   settings.yml        SearXNG config (JSON format enabled)
 certs/

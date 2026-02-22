@@ -49,9 +49,15 @@ async function synthesizeVoice(
   const outputPath = join(outputDir, filename);
   const referencePath = join("./references", `${voice}.wav`);
 
+  // PYTHON_EXEC can override the interpreter, e.g. for local uv dev:
+  //   PYTHON_EXEC="uv run python" deno run -A server.ts
+  // In Docker (pip-installed deps) this defaults to "python3".
+  const pythonExecEnv = Deno.env.get("PYTHON_EXEC") || "python3";
+  const pythonParts = pythonExecEnv.trim().split(/\s+/);
+  const pythonBin = pythonParts[0];
+
   const args = [
-    "run",
-    "python",
+    ...pythonParts.slice(1),
     "voice_synthesizer.py",
     "--text",
     text,
@@ -70,7 +76,7 @@ async function synthesizeVoice(
     args.push("--split_chars", split_chars.toString());
   }
 
-  const command = new Deno.Command("uv", {
+  const command = new Deno.Command(pythonBin, {
     args,
     stdout: "piped",
     stderr: "piped",

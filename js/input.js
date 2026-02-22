@@ -34,6 +34,7 @@ async function handleSend() {
 
   App.el.inputEl.value = "";
   App.el.inputEl.style.height = "auto";
+  document.getElementById("charCount").textContent = "";
   App.clearPendingImages();
 
   if (App.searchEnabled && App.config.searchUrl) {

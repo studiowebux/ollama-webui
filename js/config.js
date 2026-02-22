@@ -63,6 +63,7 @@ App.saveConfig = function () {
   if (App.config.storageKey !== prevStorageKey) {
     App.loadHistory();
     App.renderHistory();
+    App.renderBranchNav();
   }
 
   App.toggleConfig();

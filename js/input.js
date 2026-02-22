@@ -81,6 +81,7 @@ document.addEventListener("keydown", function (e) {
   App.populateConfigUI();
   App.loadHistory();
   App.renderHistory();
+  App.renderBranchNav();
   App.loadModels();
   App.checkConnection();
 })();

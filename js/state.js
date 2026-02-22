@@ -71,15 +71,29 @@ window.App = {
   },
 
   loadHistory: function () {
-    App.chatHistory =
-      JSON.parse(localStorage.getItem(App.config.storageKey)) || [];
+    var branchKey = App.config.storageKey + "-branches";
+    var savedBranches = localStorage.getItem(branchKey);
+    if (savedBranches) {
+      App.branches = JSON.parse(savedBranches);
+      App.chatHistory = App.branches.forks[App.branches.current].history.slice();
+    } else {
+      App.branches = null;
+      App.chatHistory = JSON.parse(localStorage.getItem(App.config.storageKey)) || [];
+    }
   },
 
   saveHistory: function () {
-    localStorage.setItem(
-      App.config.storageKey,
-      JSON.stringify(App.chatHistory),
-    );
+    if (App.branches) {
+      /* Sync active fork before persisting the whole branches object */
+      App.branches.forks[App.branches.current].history = App.chatHistory.slice();
+      localStorage.setItem(
+        App.config.storageKey + "-branches",
+        JSON.stringify(App.branches),
+      );
+    } else {
+      localStorage.removeItem(App.config.storageKey + "-branches");
+    }
+    localStorage.setItem(App.config.storageKey, JSON.stringify(App.chatHistory));
   },
 
   toggleTheme: function () {

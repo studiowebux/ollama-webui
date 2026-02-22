@@ -8,3 +8,7 @@ search:
 server:
   secret_key: "ollamaui-searxng-secret-change-me"
   limiter: false
+  default_http_headers:
+    Access-Control-Allow-Origin: "*"
+    Access-Control-Allow-Methods: "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers: "Content-Type, Authorization"

@@ -31,12 +31,14 @@ services:
     container_name: ollamaui
     ports:
       - "8080:8080"
+      - "8443:8443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ./index.html:/srv/index.html:ro
       - ./style.css:/srv/style.css:ro
       - ./js:/srv/js:ro
       - ./vendors:/srv/vendors:ro
+      - ./certs:/certs:ro
     depends_on:
       - ollama
       - searxng

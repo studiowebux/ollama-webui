@@ -21,7 +21,7 @@ App.populateConfigUI = function () {
   document.getElementById("configChatterboxAutoUnload").checked = App.config.chatterboxAutoUnload || false;
   document.getElementById("configChatterboxSplit").checked = App.config.chatterboxSplit || false;
   document.getElementById("configChatterboxSplitChars").value = App.config.chatterboxSplitChars || 400;
-  if (App.config.chatterboxUrl) App.loadChatterboxVoices();
+  App.loadChatterboxVoices();
 };
 
 App.saveConfig = function () {

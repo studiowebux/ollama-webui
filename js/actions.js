@@ -243,9 +243,10 @@ App.speak = async function (text) {
   App.el.typingEl.textContent = "Synthesizing speech...";
 
   try {
-    /* Empty URL = same-origin via Caddy /tts proxy */
-    var base = (App.config.chatterboxUrl || "").replace(/\/$/, "") || "/tts";
-    var res = await fetch(base + "/synthesize", {
+    /* chatterboxUrl is the Caddy base (or empty for same-origin).
+       Chatterbox is always proxied under /tts/ by Caddy. */
+    var base = (App.config.chatterboxUrl || "").replace(/\/$/, "");
+    var res = await fetch(base + "/tts/synthesize", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

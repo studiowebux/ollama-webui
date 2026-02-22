@@ -164,10 +164,11 @@ App.fetchModelInfo = async function (modelName) {
 
 App.loadChatterboxVoices = async function () {
   var select = document.getElementById("configChatterboxVoice");
-  var url = (document.getElementById("configChatterboxUrl").value.trim() || App.config.chatterboxUrl || "").replace(/\/$/, "") || "/tts";
-  if (!url) return;
+  /* chatterboxUrl is the Caddy base (or empty for same-origin).
+     Chatterbox is always proxied under /tts/ by Caddy. */
+  var base = (document.getElementById("configChatterboxUrl").value.trim() || App.config.chatterboxUrl || "").replace(/\/$/, "");
   try {
-    var res = await fetch(url.replace(/\/$/, "") + "/voices");
+    var res = await fetch(base + "/tts/voices");
     var data = await res.json();
     select.innerHTML = "";
     (data.voices || []).forEach(function (v) {

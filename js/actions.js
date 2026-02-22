@@ -1,4 +1,41 @@
-/* actions.js — regenerate, edit/resend, export, image paste/attach */
+/* actions.js — regenerate, edit/resend, export, image paste/attach, web search */
+
+/* -------- Web Search -------- */
+
+App.toggleSearch = function () {
+  App.searchEnabled = !App.searchEnabled;
+  App.el.searchToggleBtn.className =
+    "search-toggle-btn" + (App.searchEnabled ? " active" : "");
+};
+
+App.webSearch = async function (query) {
+  if (!App.config.searchUrl) return null;
+
+  try {
+    var base = App.config.searchUrl.replace(/\/$/, "");
+    var url =
+      base + "/search?q=" + encodeURIComponent(query) + "&format=json";
+    var res = await fetch(url);
+    if (!res.ok) return null;
+    var data = await res.json();
+
+    if (!data.results || !data.results.length) return null;
+
+    var top = data.results.slice(0, 5);
+    var results = top.map(function (r) {
+      return { title: r.title || "", url: r.url || "", content: r.content || "" };
+    });
+    var context = results
+      .map(function (r, i) {
+        return i + 1 + ". " + r.title + "\n" + r.content + "\nURL: " + r.url;
+      })
+      .join("\n\n");
+
+    return { context: context, results: results };
+  } catch (e) {
+    return null;
+  }
+};
 
 /* -------- Regenerate last response -------- */
 

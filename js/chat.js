@@ -27,6 +27,8 @@ App.sendMessage = async function (content, opts) {
   opts = opts || {};
   var skipUserPush = opts.skipUserPush || false;
   var images = opts.images || null;
+  var searchContext = opts.searchContext || null;
+  var searchResults = opts.searchResults || null;
 
   if (!App.config.model) {
     App.el.typingEl.textContent =
@@ -37,6 +39,7 @@ App.sendMessage = async function (content, opts) {
   if (!skipUserPush) {
     var userMsg = { role: "user", content: content };
     if (images && images.length) userMsg.images = images;
+    if (searchResults && searchResults.length) userMsg.searchResults = searchResults;
     App.chatHistory.push(userMsg);
     App.appendMessageEl(
       "user",
@@ -44,6 +47,7 @@ App.sendMessage = async function (content, opts) {
       true,
       App.chatHistory.length - 1,
       images,
+      searchResults,
     );
     App.saveHistory();
   }
@@ -64,12 +68,25 @@ App.sendMessage = async function (content, opts) {
   var promptEvalCount = 0;
 
   try {
+    var apiMessages = App.buildMessages();
+
+    if (searchContext) {
+      /* Insert search results as system message before the last user message */
+      var insertAt = apiMessages.length - 1;
+      apiMessages.splice(insertAt, 0, {
+        role: "system",
+        content:
+          "Use the following web search results to help answer the user's question. Cite sources when relevant.\n\n" +
+          searchContext,
+      });
+    }
+
     var response = await fetch(App.apiUrl("/api/chat"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: App.config.model,
-        messages: App.buildMessages(),
+        messages: apiMessages,
         stream: true,
         options: {
           temperature: App.config.temperature,

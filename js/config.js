@@ -16,6 +16,7 @@ App.populateConfigUI = function () {
   document.getElementById("topPValue").textContent = App.config.topP;
   document.getElementById("configNumCtx").value = App.config.numCtx;
   document.getElementById("numCtxValue").textContent = App.config.numCtx;
+  document.getElementById("configSearchUrl").value = App.config.searchUrl || "";
 };
 
 App.saveConfig = function () {
@@ -33,6 +34,9 @@ App.saveConfig = function () {
   App.config.topP = parseFloat(document.getElementById("configTopP").value);
   App.config.numCtx =
     parseInt(document.getElementById("configNumCtx").value, 10) || 8192;
+  App.config.searchUrl = document
+    .getElementById("configSearchUrl")
+    .value.trim();
 
   localStorage.setItem("ollama-ui-config", JSON.stringify(App.config));
   App.loadHistory();
@@ -172,6 +176,13 @@ App.checkConnection = async function () {
     App.updateConnectionStatus(res.ok);
   } catch (e) {
     App.updateConnectionStatus(false);
+    if (
+      location.protocol === "https:" &&
+      App.config.baseUrl.startsWith("http://")
+    ) {
+      App.el.typingEl.textContent =
+        "Mixed content blocked: HTTPS page cannot reach HTTP Ollama. Serve this app over HTTP or use localhost.";
+    }
   }
 };
 

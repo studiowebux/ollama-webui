@@ -495,6 +495,78 @@ header button:hover {
   object-fit: cover;
 }
 
+/* -------- Search toggle button -------- */
+
+.search-toggle-btn {
+  background: none;
+  border: none;
+  border-right: 1px solid var(--border);
+  padding: 8px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--muted);
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  letter-spacing: 0.02em;
+  transition: background 0.1s, color 0.1s;
+  flex-shrink: 0;
+}
+
+.search-toggle-btn:hover {
+  background: var(--btn-hover-bg);
+  color: var(--text);
+}
+
+.search-toggle-btn.active {
+  background: var(--send-bg);
+  color: var(--send-text);
+}
+
+/* -------- Search results (in user messages) -------- */
+
+.search-results {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted);
+  white-space: normal;
+}
+
+.search-results summary {
+  cursor: pointer;
+  letter-spacing: 0.02em;
+}
+
+.search-results ol {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.search-results li {
+  line-height: 1.4;
+}
+
+.search-results a {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.search-results a:hover {
+  color: var(--muted);
+}
+
+.search-snippet {
+  color: var(--muted);
+  font-size: 11px;
+}
+
 /* -------- Attach button -------- */
 
 .attach-btn {

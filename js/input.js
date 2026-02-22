@@ -21,19 +21,29 @@ App.el.sendBtn.addEventListener("click", function () {
   }
 });
 
-function handleSend() {
+async function handleSend() {
   var value = App.el.inputEl.value.trim();
   if (!value && !App.pendingImages.length) return;
   if (App.isGenerating) return;
 
   var content = value || "(image)";
   var images = App.pendingImages.length ? App.pendingImages.slice() : null;
+  var searchData = null;
 
   App.el.inputEl.value = "";
   App.el.inputEl.style.height = "auto";
   App.clearPendingImages();
 
-  App.sendMessage(content, { images: images });
+  if (App.searchEnabled && App.config.searchUrl) {
+    App.el.typingEl.textContent = "Searching...";
+    searchData = await App.webSearch(content);
+  }
+
+  App.sendMessage(content, {
+    images: images,
+    searchContext: searchData ? searchData.context : null,
+    searchResults: searchData ? searchData.results : null,
+  });
 }
 
 /* -------- Keyboard shortcuts -------- */

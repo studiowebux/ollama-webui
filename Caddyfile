@@ -1,0 +1,12 @@
+:8080 {
+	root * /srv
+	file_server
+
+	handle /api/* {
+		reverse_proxy ollama:11434
+	}
+
+	handle /search* {
+		reverse_proxy searxng:8080
+	}
+}

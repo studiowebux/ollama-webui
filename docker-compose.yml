@@ -1,0 +1,47 @@
+services:
+  ollama:
+    image: ollama/ollama:0.16.2
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - /persistent/AI/ollama:/root/.ollama
+      # - ollama-data:/root/.ollama
+    environment:
+      - OLLAMA_ORIGINS=*
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  searxng:
+    image: docker.io/searxng/searxng:latest
+    container_name: searxng
+    volumes:
+      - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
+      - searxng-data:/var/cache/searxng
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: ollamaui
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./index.html:/srv/index.html:ro
+      - ./style.css:/srv/style.css:ro
+      - ./js:/srv/js:ro
+      - ./vendors:/srv/vendors:ro
+    depends_on:
+      - ollama
+      - searxng
+    restart: unless-stopped
+
+volumes:
+  #ollama-data:
+  searxng-data:

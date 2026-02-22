@@ -40,7 +40,7 @@
       <div class="config-panel" id="configPanel">
         <div>
           <label>Ollama Base URL</label>
-          <input id="configBaseUrl" placeholder="http://localhost:11434" />
+          <input id="configBaseUrl" placeholder="http://localhost:11434 (empty = same origin)" />
         </div>
 
         <div class="config-row">
@@ -111,6 +111,11 @@
         </div>
 
         <div>
+          <label>Search URL (SearXNG)</label>
+          <input id="configSearchUrl" placeholder="http://localhost:8888 (empty = same origin)" />
+        </div>
+
+        <div>
           <label>Storage Key</label>
           <input id="configStorageKey" placeholder="ollama-chat-history" />
         </div>
@@ -125,6 +130,7 @@
       <div id="imagePreview" class="image-preview"></div>
 
       <div class="input-area">
+        <button class="search-toggle-btn" id="searchToggleBtn" onclick="App.toggleSearch()" title="Toggle web search">Search</button>
         <button class="attach-btn" id="attachBtn" title="Attach image">Attach</button>
         <textarea
           id="input"

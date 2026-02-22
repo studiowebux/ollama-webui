@@ -8,6 +8,7 @@ var DEFAULT_CONFIG = {
   temperature: 0.7,
   topP: 0.9,
   numCtx: 8192,
+  searchUrl: "",
 };
 
 window.App = {
@@ -21,6 +22,7 @@ window.App = {
   abortController: null,
   isGenerating: false,
   pendingImages: [],
+  searchEnabled: false,
 
   el: {
     messagesEl: document.getElementById("messages"),
@@ -36,6 +38,7 @@ window.App = {
     ctxBarEl: document.getElementById("ctxBar"),
     imagePreview: document.getElementById("imagePreview"),
     themeToggleBtn: document.getElementById("themeToggleBtn"),
+    searchToggleBtn: document.getElementById("searchToggleBtn"),
   },
 
   apiUrl: function (path) {

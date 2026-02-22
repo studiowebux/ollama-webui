@@ -1,6 +1,6 @@
 /* messages.js — Message rendering, scroll helpers, context usage */
 
-App.appendMessageEl = function (role, content, animate, index, images) {
+App.appendMessageEl = function (role, content, animate, index, images, searchResults) {
   var div = document.createElement("div");
   div.className = "message " + role;
 
@@ -37,6 +37,35 @@ App.appendMessageEl = function (role, content, animate, index, images) {
     var textNode = document.createTextNode(content);
     div.appendChild(textNode);
 
+    /* Search results */
+    if (searchResults && searchResults.length) {
+      var details = document.createElement("details");
+      details.className = "search-results";
+      var summary = document.createElement("summary");
+      summary.textContent = searchResults.length + " sources";
+      details.appendChild(summary);
+
+      var list = document.createElement("ol");
+      searchResults.forEach(function (r) {
+        var li = document.createElement("li");
+        var a = document.createElement("a");
+        a.href = r.url;
+        a.target = "_blank";
+        a.rel = "noopener";
+        a.textContent = r.title || r.url;
+        li.appendChild(a);
+        if (r.content) {
+          var snippet = document.createElement("span");
+          snippet.className = "search-snippet";
+          snippet.textContent = " -- " + r.content.substring(0, 120);
+          li.appendChild(snippet);
+        }
+        list.appendChild(li);
+      });
+      details.appendChild(list);
+      div.appendChild(details);
+    }
+
     /* Edit button */
     if (index !== undefined) {
       var editBtn = document.createElement("button");
@@ -62,7 +91,7 @@ App.appendMessageEl = function (role, content, animate, index, images) {
 App.renderHistory = function () {
   App.el.messagesEl.innerHTML = "";
   App.chatHistory.forEach(function (msg, i) {
-    App.appendMessageEl(msg.role, msg.content, false, i, msg.images);
+    App.appendMessageEl(msg.role, msg.content, false, i, msg.images, msg.searchResults);
   });
   App.scrollToBottom(true);
 };

@@ -1,5 +1,7 @@
 # Ollama Chat UI
 
+2026-02-23: Moved to https://github.com/studiowebux/mdplanner
+
 Minimal black and white chat interface for Ollama with web search and text-to-speech support.
 
 ## Features
